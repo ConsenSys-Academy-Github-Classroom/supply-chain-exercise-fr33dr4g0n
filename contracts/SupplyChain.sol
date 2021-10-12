@@ -115,7 +115,6 @@ contract SupplyChain {
     // 3. Emit the appropriate event
     // 4. return true
    
-
     items[skuCount] = Item({
       name: _name, 
       sku: skuCount, 
@@ -131,7 +130,7 @@ contract SupplyChain {
   }
 
   // Implement this buyItem function. 
-  // 1. it should be payable in order to receive refunds
+  // 1. it should be payable in order to receive refunds // done
   // 2. this should transfer money to the seller, 
   // 3. set the buyer as the person who called this transaction, 
   // 4. set the state to Sold. 
@@ -141,9 +140,12 @@ contract SupplyChain {
   //    - check the value after the function is called to make 
   //      sure the buyer is refunded any excess ether sent. 
   // 6. call the event associated with this function!
-  function buyItem(uint sku) payable public {
-    uint _value = msg.value;
-    items[sku].seller.transfer(_value);
+  function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku) {
+      items[sku].seller.transfer(items[sku].price);
+      items[sku].buyer = msg.sender;
+      items[sku].state = State.Sold;
+
+      emit LogSold(sku);
 
   }
 
@@ -152,28 +154,33 @@ contract SupplyChain {
   //    - the person calling this function is the seller. 
   // 2. Change the state of the item to shipped. 
   // 3. call the event associated with this function!
-  function shipItem(uint sku) public {}
+  function shipItem(uint sku) public sold(sku) verifyCaller(items[sku].seller) {
+    items[sku].state = State.Shipped;
+    emit LogShipped(sku);
+  }
 
   // 1. Add modifiers to check 
   //    - the item is shipped already 
   //    - the person calling this function is the buyer. 
   // 2. Change the state of the item to received. 
   // 3. Call the event associated with this function!
-  function receiveItem(uint sku) public {}
+  function receiveItem(uint sku) public shipped(sku) verifyCaller(items[sku].buyer) {
+    items[sku].state = State.Received;
+    emit LogReceived(sku);
+  }
 
 
-/* 
- // To run some tests
- //  function fetchItem(uint _sku) public view 
- //    returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) 
- //  { 
- //    name = items[_sku].name; 
- //    sku = items[_sku].sku; 
- //    price = items[_sku].price; 
- //    state = uint(items[_sku].state); 
- //    seller = items[_sku].seller; 
- //    buyer = items[_sku].buyer; 
- //    return (name, sku, price, state, seller, buyer); 
- //   }
-  */
+
+   function fetchItem(uint _sku) public view 
+    returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) 
+   { 
+    name = items[_sku].name; 
+     sku = items[_sku].sku; 
+    price = items[_sku].price; 
+     state = uint(items[_sku].state); 
+    seller = items[_sku].seller; 
+     buyer = items[_sku].buyer; 
+    return (name, sku, price, state, seller, buyer); 
+    }
+ 
 }
